@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.db import Base
 from app.db.session import engine
-from app.api.v1.endpoints import admin  # 나중에 laws, changes, diffs 추가 예정
+from app.api.v1.endpoints import admin, changes
 
 settings = get_settings()
 
@@ -21,3 +21,6 @@ app.add_middleware(
 )
 
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
+
+# ✅ 변경이력/신구법 비교용
+app.include_router(changes.router, prefix="/api/v1/changes", tags=["changes"])
