@@ -36,6 +36,8 @@ class LawChangeEvent(Base):
     enforce_date = Column(Date, nullable=True)
     current_hist_cd = Column(Text, nullable=True)
     collected_date = Column(Date, nullable=False)
+    change_summary = Column(Text, nullable=True)           # 내용요약
+    action_recommendation = Column(Text, nullable=True)     # 조치사항
 
     created_at = Column(
         DateTime(timezone=True),

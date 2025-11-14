@@ -18,7 +18,7 @@ class NlicClientError(Exception):
 def _request_json(
     url: str,
     params: Dict[str, Any],
-    timeout: int = 30,    # 기본 타임아웃 넉넉하게
+    timeout: int = 230,    # 기본 타임아웃 넉넉하게
     max_retries: int = 5, # 5번까지 재시도
     backoff_sec: float = 1.0,
 ) -> Dict[str, Any]:
@@ -106,7 +106,7 @@ def fetch_old_new(mst: str) -> Dict[str, Any]:
     return _request_json(
         settings.nlic_oldnew_url,
         params,
-        timeout=60,      # 한 건당 최대 60초까지 기다려 줌
+        timeout=230,      # 한 건당 최대 60초까지 기다려 줌
         max_retries=5,   # 60초 * 5번 → 진짜 안 되면 그때 실패
         backoff_sec=2.0,
     )
