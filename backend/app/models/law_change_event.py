@@ -45,14 +45,6 @@ class LawChangeEvent(Base):
         server_default=func.now(),
     )
 
-    # UNIQUE (law_id, mst)
-    __table_args__ = (
-        # SQLAlchemy 2.x 방식
-        # UniqueConstraint("law_id", "mst", name="uq_law_change_event_law_mst"),
-    )
-
     law = relationship("Law", backref="change_events")
 
-__table_args__ = (
-    UniqueConstraint("law_id", "mst", name="uq_law_change_event_law_mst"),
-)
+    __table_args__ = ()

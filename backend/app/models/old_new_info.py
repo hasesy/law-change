@@ -14,12 +14,7 @@ from app.db.base import Base
 class OldNewInfo(Base):
     __tablename__ = "old_new_info"
 
-    # change_id UUID PK & FK
-    change_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("law_change_event.change_id", ondelete="CASCADE"),
-        primary_key=True,
-    )
+    mst = Column(Text, primary_key=True)
 
     has_old_new = Column(Text, nullable=False)  # 'Y' or 'N'
     old_basic = Column(JSONB, nullable=False)

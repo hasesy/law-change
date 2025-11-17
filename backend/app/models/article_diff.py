@@ -20,11 +20,8 @@ class ArticleDiff(Base):
         server_default=text("gen_random_uuid()"),
     )
 
-    change_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("law_change_event.change_id", ondelete="CASCADE"),
-        nullable=False,
-    )
+     # 🔹 이제 mst로만 연결 (change_id 제거)
+    mst = Column(Text, nullable=False)
 
     old_no = Column(Text, nullable=True)
     old_content = Column(Text, nullable=True)
@@ -38,4 +35,4 @@ class ArticleDiff(Base):
     )
 
 
-Index("idx_article_diff_change", ArticleDiff.change_id)
+Index("idx_article_diff_mst", ArticleDiff.mst)
