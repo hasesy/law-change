@@ -23,8 +23,18 @@ body,
 
 /* 바깥 배경도 앱이랑 맞춰주기 */
 body {
-  background-color: #020617; /* 다크 모드 느낌, 원하면 바꿔도 됨 */
   font-family: "Pretendard", sans-serif;
+}
+
+/* 🔹 테마별 배경색 (App.vue에서 body에 클래스 붙여줌) */
+body.theme-dark {
+  background-color: #020617; /* 아주 짙은 남색(완전 블랙보단 살짝 밝음) */
+  color: #e5e7eb;
+}
+
+body.theme-light {
+  background-color: #f3f4f6; /* 약간 회색 도는 라이트 */
+  color: #111827;
 }
 
 /* 제일 중요: Vite 기본 max-width 제거 */
@@ -32,4 +42,9 @@ body {
   max-width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
+}
+
+body.theme-dark,
+body.theme-light {
+  overflow: hidden; /* 브라우저 기본 스크롤 막기 */
 }

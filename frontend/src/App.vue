@@ -1,6 +1,6 @@
 <!-- src/App.vue -->
 <template>
-  <n-config-provider :theme="theme">
+  <n-config-provider :theme="currentTheme" :theme-overrides="themeOverrides">
     <n-layout style="min-height: 100vh">
       <!-- 🔹 상단 헤더 -->
       <n-layout-header
@@ -13,34 +13,31 @@
           justify-content: space-between;
         "
       >
-        <div style="display: flex; align-items: center; gap: 8px">
-          <!-- 로고 영역 (원하면 이미지로 교체) -->
-          <div
+        <div
+          style="display: flex; align-items: center; gap: 8px; cursor: pointer"
+          @click="router.push('/dashboard')"
+        >
+          <!-- 로고 -->
+          <img
+            src="@/assets/logo.png"
+            alt="logo"
             style="
               width: 28px;
               height: 28px;
-              border-radius: 8px;
-              background: #2563eb;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: white;
-              font-weight: 700;
-              font-size: 16px;
+              border-radius: 6px;
+              object-fit: cover;
             "
-          >
-            L
-          </div>
+          />
           <div style="display: flex; flex-direction: column">
             <span style="font-weight: 600; font-size: 16px">
-              법령 변경이력 모니터링
+              LegalTracker
             </span>
           </div>
         </div>
 
         <!-- 🔥 다크모드 버튼 -->
         <n-button tertiary @click="toggleTheme">
-          {{ isDark ? "🌞 라이트모드" : "🌙 다크모드" }}
+          {{ isDark ? "🌞 라이트 모드" : "🌙 다크 모드" }}
         </n-button>
       </n-layout-header>
 
@@ -53,7 +50,13 @@
           collapse-mode="width"
           show-trigger="bar"
         >
-          <div style="padding: 12px 12px 8px; font-size: 11px; color: #9ca3af">
+          <div
+            style="
+              padding: 12px 12px 8px;
+              font-size: 11px;
+              color: rgba(148, 163, 184, 0.9);
+            "
+          >
             메인 메뉴
           </div>
           <n-menu
@@ -62,9 +65,14 @@
             @update:value="handleMenuSelect"
           />
         </n-layout-sider>
+
         <!-- 오른쪽 본문 -->
         <n-layout-content style="padding: 16px 24px 24px; overflow: auto">
-          <router-view />
+          <n-scrollbar style="height: 100%">
+            <div>
+              <router-view />
+            </div>
+          </n-scrollbar>
         </n-layout-content>
       </n-layout>
     </n-layout>
@@ -72,9 +80,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { darkTheme } from "naive-ui";
+import { darkTheme, type GlobalThemeOverrides } from "naive-ui";
 
 const router = useRouter();
 const route = useRoute();
@@ -82,7 +90,6 @@ const route = useRoute();
 // 라우터 경로 기준으로 메뉴 활성화
 const activeKey = computed(() => route.path);
 
-// 메뉴 항목 정의 (지금은 하나지만 나중에 추가 가능)
 const menuOptions = [
   {
     label: "대시보드",
@@ -92,13 +99,98 @@ const menuOptions = [
     label: "법령 변경이력",
     key: "/law-changes",
   },
-  // 나중에 이런 식으로 추가 가능
-  // { label: '신·구조문 비교', key: '/diff' },
 ];
 
 const isDark = ref(true);
 
-const theme = computed(() => (isDark.value ? darkTheme : null));
+// 🔹 실제 Naive UI theme 객체
+const currentTheme = computed(() => (isDark.value ? darkTheme : null));
+
+// 🔹 공통 색상 토큰 살짝 커스텀
+const themeOverrides = computed<GlobalThemeOverrides>(() => {
+  if (isDark.value) {
+    // 🌙 세미 다크 테마
+    return {
+      common: {
+        // 배경 / 카드 / 텍스트
+        bodyColor: "#020617", // slate-950 느낌
+        cardColor: "#0f172a",
+        modalColor: "#0f172a",
+        popoverColor: "#0f172a",
+        inputColor: "#0f172a",
+        textColorBase: "#f9fafb", // 거의 흰색
+        textColor1: "#f9fafb", // 제목/주요 텍스트
+        textColor2: "#e5e7eb", // 일반 텍스트
+        textColor3: "#9ca3af", // 서브/보조 텍스트
+        borderColor: "rgba(148, 163, 184, 0.35)",
+
+        // 포커스 / 프라이머리
+        primaryColor: "#60a5fa",
+        primaryColorHover: "#3b82f6",
+        primaryColorPressed: "#1d4ed8",
+        primaryColorSuppl: "#60a5fa",
+
+        // 레이아웃 헤더/사이더 살짝 밝게
+        invertedColor: "#0b1120",
+      },
+      Card: {
+        // 카드 배경은 body보다 확실히 밝게
+        color: "#0f172a",
+        borderColor: "rgba(148, 163, 184, 0.28)",
+        boxShadow: "0 16px 40px rgba(15, 23, 42, 0.75)",
+        borderRadius: "16px",
+      },
+      Layout: {
+        // 헤더/사이더는 배경과 맞춰주고
+        headerColor: "#020617",
+        siderColor: "#020617",
+        footerColor: "#020617",
+      },
+    };
+  }
+
+  // 🌞 소프트 라이트 테마
+  return {
+    common: {
+      bodyColor: "#f3f4f6", // 아주 밝은 회색
+      cardColor: "#ffffff",
+      modalColor: "#ffffff",
+      popoverColor: "#ffffff",
+      inputColor: "#ffffff",
+      textColorBase: "#111827",
+      textColor1: "#111827",
+      textColor2: "#4b5563",
+      borderColor: "#e5e7eb",
+
+      primaryColor: "#2563eb",
+      primaryColorHover: "#1d4ed8",
+      primaryColorPressed: "#1d4ed8",
+      primaryColorSuppl: "#2563eb",
+    },
+    Card: {
+      borderRadius: "16px",
+    },
+  };
+});
+
+// 🔹 body 클래스 토글해서 바깥 배경까지 맞추기
+function applyBodyTheme(dark: boolean) {
+  if (dark) {
+    document.body.classList.add("theme-dark");
+    document.body.classList.remove("theme-light");
+  } else {
+    document.body.classList.add("theme-light");
+    document.body.classList.remove("theme-dark");
+  }
+}
+
+onMounted(() => {
+  applyBodyTheme(isDark.value);
+});
+
+watch(isDark, (val) => {
+  applyBodyTheme(val);
+});
 
 function handleMenuSelect(key: string) {
   if (key !== route.path) {
@@ -106,5 +198,7 @@ function handleMenuSelect(key: string) {
   }
 }
 
-const toggleTheme = () => (isDark.value = !isDark.value);
+const toggleTheme = () => {
+  isDark.value = !isDark.value;
+};
 </script>

@@ -156,28 +156,68 @@
   <!-- 상세 모달 -->
   <LawChangeDetailModal
     v-model:show="detailVisible"
-    :change-id="selectedChangeId"
+    :detail-data="detailData"
     :initial-law="selected"
   />
+
+  <!-- ✅ 신·구법 비교 없음 안내 모달 (커스텀 스타일) -->
+  <n-modal
+    v-model:show="noOldNewVisible"
+    preset="card"
+    class="no-oldnew-modal"
+    :mask-closable="false"
+    :closable="false"
+    :style="{ width: '420px', maxWidth: '90vw' }"
+  >
+    <div class="no-oldnew-inner">
+      <!-- 동그란 아이콘 -->
+      <div class="no-oldnew-icon-wrap">
+        <div class="no-oldnew-icon">i</div>
+      </div>
+
+      <!-- 제목 -->
+      <div class="no-oldnew-title">비교 정보 없음</div>
+
+      <!-- 설명 문구 -->
+      <div class="no-oldnew-desc">
+        해당 변경 건에 대한 신·구법 조문 비교 내역이 없습니다.
+      </div>
+
+      <!-- 확인 버튼 -->
+      <n-button
+        type="primary"
+        size="large"
+        block
+        class="no-oldnew-button"
+        @click="noOldNewVisible = false"
+      >
+        확인
+      </n-button>
+    </div>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import dayjs from "dayjs";
-import type { LawChangeEvent } from "@/types/law";
-import { fetchLawChanges } from "@/api/lawChange";
+import type { LawChangeDetailResponse, LawChangeEvent } from "@/types/law";
+import { fetchLawChanges, fetchLawChangeDetail } from "@/api/lawChange";
 import LawChangeDetailModal from "@/components/law/LawChangeDetailModal.vue";
 
 const items = ref<LawChangeEvent[]>([]);
 const total = ref(0);
 const page = ref(1);
-const pageSize = 8;
+const pageSize = 10;
 
 const loading = ref(false);
 
+// 상세 모달 관련
 const detailVisible = ref(false);
+const detailData = ref<LawChangeDetailResponse | null>(null); // 🔥 상세 데이터
 const selected = ref<LawChangeEvent | null>(null);
-const selectedChangeId = ref<string | null>(null);
+
+// ✅ 신·구법 비교 없음 안내 모달 상태
+const noOldNewVisible = ref(false);
 
 // 🔹 기본 날짜: 오늘 ~ 7일 전
 const today = dayjs();
@@ -186,7 +226,7 @@ const defaultEnd = today.valueOf(); // 오늘
 
 const filter = ref({
   keyword: "",
-  date_basis: "promulgation" as "promulgation" | "enforcement" | "collected",
+  date_basis: "collected" as "promulgation" | "enforcement" | "collected",
   start_date: defaultStart as number | null,
   end_date: defaultEnd as number | null,
 });
@@ -259,15 +299,24 @@ function onPageChange(p: number) {
   loadData();
 }
 
-function handleCardClick(row: LawChangeEvent) {
+async function handleCardClick(row: LawChangeEvent) {
   selected.value = row;
-  selectedChangeId.value = row.change_id;
+
+  // 🔥 1) 상세 먼저 API 호출
+  const resp = await fetchLawChangeDetail(row.change_id);
+
+  // 🔥 2) 신구법 없음
+  if (resp.has_old_new === "N") {
+    noOldNewVisible.value = true;
+    return;
+  }
+
+  // 🔥 3) 신구법 있음 → 상세 모달 데이터 전달
+  detailData.value = resp;
   detailVisible.value = true;
 }
 
-onMounted(() => {
-  loadData();
-});
+onMounted(loadData);
 </script>
 
 <style scoped>
@@ -436,6 +485,88 @@ onMounted(() => {
   justify-content: space-between;
   font-size: 12px;
   opacity: 0.8;
+}
+
+/* =============================
+   신·구법 비교 없음 모달 스타일
+   ============================= */
+.no-oldnew-modal .n-card__content {
+  padding: 28px 28px 24px;
+}
+
+.no-oldnew-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+/* 동그란 정보 아이콘 */
+.no-oldnew-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.no-oldnew-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 28px;
+}
+
+/* 제목 / 설명 */
+.no-oldnew-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.no-oldnew-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0.9;
+  margin-bottom: 4px;
+  max-width: 320px;
+}
+
+/* 버튼 */
+.no-oldnew-button {
+  margin-top: 4px;
+  border-radius: 8px;
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
+    opacity 0.12s ease-out;
+}
+
+/* 다크 / 라이트별 색감 살짝 튜닝 */
+.theme-dark .no-oldnew-icon {
+  background: rgba(37, 99, 235, 0.16);
+  color: #60a5fa;
+}
+
+.theme-light .no-oldnew-icon {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+.theme-dark .no-oldnew-title {
+  color: #e5e7eb;
+}
+
+.theme-light .no-oldnew-title {
+  color: #111827;
+}
+
+.theme-dark .no-oldnew-desc {
+  color: #cbd5f5;
+}
+
+.theme-light .no-oldnew-desc {
+  color: #4b5563;
 }
 
 /* 반응형 */
