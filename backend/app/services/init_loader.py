@@ -66,37 +66,45 @@ def _create_change_event_if_new(
     """
     LawSearch.law[] → law_change_event 신규 생성
 
-    필드:
-      - 법령일련번호 → mst
-      - 제개정구분명 → change_type
-      - 공포번호 → proclamation_no
-      - 공포일자 → proclamation_date
-      - 시행일자 → enforce_date
-      - 현행연혁코드 → current_hist_cd
+    - MST가 같아도 아래 필드 중 하나라도 다르면 새로운 변경이력으로 저장
+      * 제개정구분명 → change_type
+      * 공포번호 → proclamation_no
+      * 공포일자 → proclamation_date
+      * 시행일자 → enforce_date
+      * 현행연혁코드 → current_hist_cd
     """
+    
     mst_raw = item.get("법령일련번호")
     if not mst_raw:
         return None
 
     mst = str(mst_raw)
-
-    existing = (
-        db.query(LawChangeEvent)
-        .filter(
-            LawChangeEvent.law_id == law.law_id,
-            LawChangeEvent.mst == mst,
-        )
-        .first()
-    )
-    if existing:
-        return None
-
+    
+    # 신규 이벤트 후보 값들 먼저 파싱
     change_type = item.get("제개정구분명")
     proclamation_no = item.get("공포번호")
     proclamation_date = _parse_ymd(item.get("공포일자"))
     enforce_date = _parse_ymd(item.get("시행일자"))
     current_hist_cd = item.get("현행연혁코드")
 
+  # ✅ MST + 메타 정보까지 모두 같은 이벤트가 이미 있으면 스킵
+    existing = (
+        db.query(LawChangeEvent)
+        .filter(
+            LawChangeEvent.law_id == law.law_id,
+            LawChangeEvent.mst == mst,
+            LawChangeEvent.change_type == change_type,
+            LawChangeEvent.proclamation_no == proclamation_no,
+            LawChangeEvent.proclamation_date == proclamation_date,
+            LawChangeEvent.enforce_date == enforce_date,
+            LawChangeEvent.current_hist_cd == current_hist_cd,
+        )
+        .first()
+    )
+    if existing:
+        return None
+
+  # ✅ 여기까지 왔으면 "새로운 변경이력"으로 판단
     event = LawChangeEvent(
         law_id=law.law_id,
         mst=mst,
@@ -116,13 +124,18 @@ def _create_change_event_if_new(
 def _save_old_new_and_articles(db: Session, event: LawChangeEvent) -> None:
     """
     oldAndNew 호출 → old_new_info + article_diff 적재
+
+    - mst 단위로 한 번만 저장
+    - 같은 mst를 가지는 다른 change 이벤트가 있어도 추가로 저장하지 않음
     """
-    # 이미 있으면 스킵
-    existing = db.get(OldNewInfo, event.change_id)
+    mst = event.mst
+    
+     # ✅ mst 기준으로 이미 old_new_info가 있으면 스킵
+    existing = db.get(OldNewInfo, mst)
     if existing:
         return
 
-    data = fetch_old_new(event.mst)
+    data = fetch_old_new(mst)
 
     service = data.get("OldAndNewService") or data
 
@@ -159,8 +172,9 @@ def _save_old_new_and_articles(db: Session, event: LawChangeEvent) -> None:
         old_content = old_item.get("content") or ""
         new_content = new_item.get("content") or ""
 
+        # 🔹 ArticleDiff도 mst 기준으로만 연결
         diff = ArticleDiff(
-            change_id=event.change_id,
+            mst=mst,
             old_no=old_no,
             old_content=old_content,
             new_no=new_no,
@@ -235,7 +249,7 @@ def load_initial_changes_until_yesterday(
     (start_date ~ 어제까지) 전체 적재 – 기존 함수는 그대로 두고 사용.
     """
     if start_date is None:
-        start_date = date(1990, 1, 1)
+        start_date = date(2020, 1, 1)
 
     end_date = date.today() - timedelta(days=1)
 

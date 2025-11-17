@@ -128,6 +128,7 @@ def get_law_change_detail(
         raise HTTPException(status_code=404, detail="Change event not found")
 
     ev, law = row
+    mst = ev.mst  # 🔑 이후 조회는 전부 MST 기준
 
     change_summary = LawChangeSummary(
         change_id=ev.change_id,
@@ -144,10 +145,10 @@ def get_law_change_detail(
         action_recommendation=ev.action_recommendation,
     )
 
-    # 신·구 기본정보
+     # 2) 신·구 기본정보 (mst 기준으로 1건)
     oni: Optional[OldNewInfo] = (
         db.query(OldNewInfo)
-        .filter(OldNewInfo.change_id == change_id)
+        .filter(OldNewInfo.mst == mst)
         .first()
     )
 
@@ -163,7 +164,7 @@ def get_law_change_detail(
     # 조문 비교 목록
     article_rows = (
         db.query(ArticleDiff)
-        .filter(ArticleDiff.change_id == change_id)
+        .filter(ArticleDiff.mst == mst)
         .order_by(
             ArticleDiff.old_no.nullsfirst(),
             ArticleDiff.new_no.nullsfirst(),
