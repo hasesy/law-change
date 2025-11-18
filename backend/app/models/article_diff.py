@@ -2,7 +2,6 @@ from sqlalchemy import (
     Column,
     Text,
     DateTime,
-    ForeignKey,
     Index,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -20,7 +19,6 @@ class ArticleDiff(Base):
         server_default=text("gen_random_uuid()"),
     )
 
-     # 🔹 이제 mst로만 연결 (change_id 제거)
     mst = Column(Text, nullable=False)
 
     old_no = Column(Text, nullable=True)

@@ -2,7 +2,7 @@
 from datetime import date, timedelta
 
 from app.db.session import SessionLocal
-from app.services.nlic_client import load_changes_for_date
+from app.services.nlic_loader import load_changes_for_date
 
 
 def run_for_yesterday() -> None:

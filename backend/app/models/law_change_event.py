@@ -4,11 +4,11 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    CheckConstraint
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func, text
 from sqlalchemy.orm import relationship
-from sqlalchemy import UniqueConstraint
 
 from app.db.base import Base
 
@@ -38,6 +38,7 @@ class LawChangeEvent(Base):
     collected_date = Column(Date, nullable=False)
     change_summary = Column(Text, nullable=True)           # 내용요약
     action_recommendation = Column(Text, nullable=True)     # 조치사항
+    ai_importance = Column(Text, nullable=True)  # 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
 
     created_at = Column(
         DateTime(timezone=True),
@@ -47,4 +48,9 @@ class LawChangeEvent(Base):
 
     law = relationship("Law", backref="change_events")
 
-    __table_args__ = ()
+    __table_args__ = (
+        CheckConstraint(
+            "ai_importance IN ('HIGH','MEDIUM','LOW','NONE')",
+            name="ck_law_change_event_ai_importance",
+        ),
+    )

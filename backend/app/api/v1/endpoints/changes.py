@@ -73,7 +73,7 @@ def list_law_changes(
     rows = (
         q.order_by(
             date_column.desc().nullslast(),
-            LawChangeEvent.change_id.desc(),
+            LawChangeEvent.created_at.desc(),
         )
         .offset(offset)
         .limit(page_size)
@@ -98,6 +98,7 @@ def list_law_changes(
                 collected_date=ev.collected_date,  # ✅ 변경일자
                 change_summary=ev.change_summary,
                 action_recommendation=ev.action_recommendation,
+                ai_importance=ev.ai_importance
             )
         )
 
@@ -143,6 +144,7 @@ def get_law_change_detail(
         collected_date=ev.collected_date,
         change_summary=ev.change_summary,
         action_recommendation=ev.action_recommendation,
+        ai_importance=ev.ai_importance
     )
 
      # 2) 신·구 기본정보 (mst 기준으로 1건)

@@ -20,6 +20,7 @@ class LawChangeListItem(BaseModel):
     collected_date: date
     change_summary: Optional[str] = None
     action_recommendation: Optional[str] = None
+    ai_importance: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -54,6 +55,7 @@ class LawChangeSummary(BaseModel):
     collected_date: date
     change_summary: Optional[str] = None
     action_recommendation: Optional[str] = None
+    ai_importance: Optional[str] = None
 
     class Config:
         orm_mode = True
