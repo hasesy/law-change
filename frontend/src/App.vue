@@ -157,10 +157,11 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
       modalColor: "#ffffff",
       popoverColor: "#ffffff",
       inputColor: "#ffffff",
-      textColorBase: "#111827",
-      textColor1: "#111827",
-      textColor2: "#4b5563",
-      borderColor: "#e5e7eb",
+      textColorBase: "#111827", // 기본 텍스트
+      textColor1: "#111827", // 제목/주요 텍스트
+      textColor2: "#374151", // 일반 텍스트 (조금 진한 회색)
+      textColor3: "#6b7280", // 보조 텍스트
+      borderColor: "#d1d5db",
 
       primaryColor: "#2563eb",
       primaryColorHover: "#1d4ed8",
