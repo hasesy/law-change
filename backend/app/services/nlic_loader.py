@@ -152,7 +152,7 @@ def _save_old_new_and_articles(db: Session, event: LawChangeEvent) -> None:
     has_old_new = "Y" if (old_list or new_list) else "N"
 
     info = OldNewInfo(
-        change_id=event.change_id,
+        mst=mst,      
         has_old_new=has_old_new,
         old_basic=old_basic,
         new_basic=new_basic,

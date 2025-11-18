@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.services.init_loader import (load_initial_changes_until_yesterday, load_changes_for_date)
+from app.services.nlic_loader import (load_initial_changes_until_yesterday, load_changes_for_date)
 
 router = APIRouter()
 
