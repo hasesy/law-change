@@ -60,99 +60,117 @@
       </div>
     </n-card>
 
-    <!-- 📋 변경이력 카드 리스트 -->
-    <div class="list-section">
-      <n-spin :show="loading">
-        <div v-if="items.length" class="card-grid">
-          <n-card
-            v-for="item in items"
-            :key="item.change_id"
-            class="law-card"
-            :bordered="false"
-            hoverable
-            @click="handleCardClick(item)"
-          >
-            <div class="law-card-main">
-              <!-- 왼쪽: 법령 기본정보 -->
-              <div class="law-card-left">
-                <!-- 제목 + 뱃지 -->
-                <div class="law-card-header">
-                  <div class="law-title">
-                    {{ item.law_name }}
-                  </div>
-                  <div class="badge-row">
-                    <n-tag
-                      v-if="item.current_hist_cd"
-                      size="small"
-                      type="info"
-                      round
-                    >
-                      {{ item.current_hist_cd }}
-                    </n-tag>
-                    <n-tag
-                      v-if="item.change_type"
-                      size="small"
-                      :type="changeTypeTagType(item.change_type)"
-                      round
-                    >
-                      {{ item.change_type }}
-                    </n-tag>
-                  </div>
-                </div>
-
-                <!-- 공포번호 / 공포일자 -->
-                <div class="meta-row">
-                  <span class="meta-label">공포번호</span>
-                  <span class="meta-value">
-                    {{ item.proclamation_no || "-" }}
-                  </span>
-                </div>
-                <div class="meta-row">
-                  <span class="meta-label">공포일자</span>
-                  <span class="meta-value">
-                    {{
-                      item.proclamation_date
-                        ? formatYmd(item.proclamation_date)
-                        : "-"
-                    }}
+    <div class="page-body">
+      <!-- 📋 변경이력 카드 리스트 -->
+      <div class="list-section">
+        <n-spin :show="loading">
+          <div v-if="items.length" class="card-grid">
+            <n-card
+              v-for="item in items"
+              :key="item.change_id"
+              class="law-card"
+              :bordered="false"
+              hoverable
+              @click="handleCardClick(item)"
+            >
+              <div
+                class="importance-wrap"
+                v-if="item.ai_importance && item.ai_importance !== 'NONE'"
+              >
+                <div
+                  class="importance-chip"
+                  :class="`importance-${item.ai_importance.toLowerCase()}`"
+                >
+                  <span class="importance-dot" />
+                  <span class="importance-text">
+                    {{ item.ai_importance }}
                   </span>
                 </div>
               </div>
 
-              <!-- 오른쪽: 내용요약 -->
-              <div class="law-card-right">
-                <div class="summary-label">변경내용 요약</div>
-                <div v-if="item.change_summary" class="summary-text">
-                  {{ item.change_summary }}
+              <div class="law-card-main">
+                <!-- 왼쪽: 법령 기본정보 -->
+                <div class="law-card-left">
+                  <!-- ✅ 법령명 + 오른쪽에 현행/연혁 & 제개정구분 뱃지 -->
+                  <div class="law-card-header">
+                    <div class="law-title">
+                      {{ item.law_name }}
+                    </div>
+                    <div class="badge-row">
+                      <n-tag
+                        v-if="item.current_hist_cd"
+                        size="small"
+                        :type="currentHistTagType(item.current_hist_cd)"
+                      >
+                        {{ item.current_hist_cd }}
+                      </n-tag>
+                      <n-tag
+                        v-if="item.change_type"
+                        size="small"
+                        :type="changeTypeTagType(item.change_type)"
+                      >
+                        {{ item.change_type }}
+                      </n-tag>
+                    </div>
+                  </div>
+
+                  <!-- 공포번호 / 공포일자 -->
+                  <div class="law-card-meta">
+                    <div class="meta-row">
+                      <span class="meta-label">공포번호</span>
+                      <span class="meta-value">
+                        {{ item.proclamation_no || "-" }}
+                      </span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">공포일자</span>
+                      <span class="meta-value">
+                        {{
+                          item.proclamation_date
+                            ? formatYmd(item.proclamation_date)
+                            : "-"
+                        }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div v-else class="summary-text summary-text--empty">
-                  변경 내역 요약이 없습니다.
+
+                <!-- 오른쪽: 내용요약 -->
+                <div class="law-card-right">
+                  <div class="summary-label">변경내용 요약</div>
+                  <div v-if="item.change_summary" class="summary-text">
+                    {{ item.change_summary }}
+                  </div>
+                  <div v-else class="summary-text summary-text--empty">
+                    변경 내역 요약이 없습니다.
+                  </div>
                 </div>
               </div>
-            </div>
-          </n-card>
-        </div>
+            </n-card>
+          </div>
 
-        <!-- 결과 없음 -->
-        <div v-else class="empty-wrap">
-          <n-empty description="검색 결과가 없습니다." :show-icon="false" />
-        </div>
-      </n-spin>
-    </div>
-
-    <!-- 페이지네이션 -->
-    <div v-if="total > 0" class="pagination-row">
-      <div class="pagination-info">
-        Showing {{ startIndex }}-{{ endIndex }} of {{ total }}
+          <!-- 결과 없음 -->
+          <div v-else class="empty-wrap">
+            <n-empty description="검색 결과가 없습니다." :show-icon="false" />
+          </div>
+        </n-spin>
       </div>
-      <n-pagination
-        v-model:page="page"
-        :page-size="pageSize"
-        :item-count="total"
-        @update:page="onPageChange"
-      />
+
+      <!-- 페이지네이션 -->
+      <div v-if="total > 0" class="pagination-row">
+        <div class="pagination-info">
+          Showing {{ startIndex }}-{{ endIndex }} of {{ total }}
+        </div>
+        <n-pagination
+          v-model:page="page"
+          :page-size="pageSize"
+          :item-count="total"
+          @update:page="onPageChange"
+        />
+      </div>
     </div>
   </div>
+
   <!-- 상세 모달 -->
   <LawChangeDetailModal
     v-model:show="detailVisible"
@@ -207,7 +225,7 @@ import LawChangeDetailModal from "@/components/law/LawChangeDetailModal.vue";
 const items = ref<LawChangeEvent[]>([]);
 const total = ref(0);
 const page = ref(1);
-const pageSize = 10;
+const pageSize = 8;
 
 const loading = ref(false);
 
@@ -258,6 +276,17 @@ function changeTypeTagType(changeType: string) {
       return "error";
     default:
       return "info";
+  }
+}
+
+function currentHistTagType(value: string) {
+  switch (value) {
+    case "현행":
+      return "info"; // 초록
+    case "연혁":
+      return "default"; // 회색
+    default:
+      return "info"; // 그 외는 기존 info
   }
 }
 
@@ -324,10 +353,17 @@ onMounted(loadData);
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: calc(100vh - 110px);
 }
 
 .page-header {
   margin-bottom: 4px;
+}
+
+.page-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .page-title {
@@ -375,6 +411,7 @@ onMounted(loadData);
 /* 리스트 영역 */
 .list-section {
   margin-top: 4px;
+  flex: 1;
 }
 
 .card-grid {
@@ -387,12 +424,16 @@ onMounted(loadData);
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
   cursor: pointer;
+  position: relative;
 }
 
 /* 카드 내부 레이아웃 (좌: 기본정보 / 우: 요약) */
 .law-card-main {
   display: flex;
   gap: 24px;
+  min-height: 100px;
+  max-height: 190px;
+  overflow: hidden;
 }
 
 /* 왼쪽: 법령 기본정보 */
@@ -400,26 +441,29 @@ onMounted(loadData);
   flex: 0 0 55%;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: space-between;
 }
 
 .law-card-header {
   display: flex;
-  align-items: center; /* 👉 같은 높이로 정렬 */
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  white-space: nowrap; /* 👉 줄바꿈 방지 */
 }
 
 .law-title {
   font-size: 16px;
   font-weight: 600;
   line-height: 1.35;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2; /* 최대 2줄 */
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap; /* 👉 줄바꿈 방지 */
+  white-space: normal;
   flex: 1 1 auto; /* 👉 남은 공간 모두 차지 */
+  min-width: 0;
 }
 
 .badge-row {
@@ -430,7 +474,81 @@ onMounted(loadData);
   flex-shrink: 0; /* 👉 작아지지 않음 */
 }
 
+/* ✅ 카드 오른쪽 상단 중요도 뱃지 */
+.importance-wrap {
+  position: absolute;
+  top: 12px;
+  right: 24px;
+  z-index: 1;
+}
+
+/* 중요도: 동그라미 + 텍스트 */
+.importance-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 동그란 점 */
+.importance-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+/* 라이트 / 다크 테마 색상 */
+.theme-light .importance-chip.importance-low .importance-dot {
+  background-color: #facc15; /* 노랑 */
+}
+.theme-light .importance-chip.importance-medium .importance-dot {
+  background-color: #f97316; /* 주황 */
+}
+.theme-light .importance-chip.importance-high .importance-dot {
+  background-color: #ef4444; /* 빨강 */
+}
+
+.theme-dark .importance-chip.importance-low .importance-dot {
+  background-color: #facc15;
+}
+.theme-dark .importance-chip.importance-medium .importance-dot {
+  background-color: #fb923c;
+}
+.theme-dark .importance-chip.importance-high .importance-dot {
+  background-color: #f87171;
+}
+
+/* 텍스트 색상 살짝만 강조 */
+.theme-light .importance-chip.importance-low {
+  color: #92400e;
+}
+.theme-light .importance-chip.importance-medium {
+  color: #9a3412;
+}
+.theme-light .importance-chip.importance-high {
+  color: #b91c1c;
+}
+
+.theme-dark .importance-chip.importance-low {
+  color: #facc15;
+}
+.theme-dark .importance-chip.importance-medium {
+  color: #fdba74;
+}
+.theme-dark .importance-chip.importance-high {
+  color: #fecaca;
+}
+
 /* 공포번호 / 공포일자 */
+/* meta 영역 묶음 */
+.law-card-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .meta-row {
   display: flex;
   gap: 8px;
@@ -451,13 +569,12 @@ onMounted(loadData);
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
+  gap: 8px;
 }
 
 .summary-label {
   font-weight: 600;
-  opacity: 0.75;
+  font-size: 14px;
 }
 
 .summary-text {
@@ -467,6 +584,7 @@ onMounted(loadData);
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  font-size: 13px;
 }
 
 .summary-text--empty {

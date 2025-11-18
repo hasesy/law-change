@@ -12,6 +12,7 @@ export interface LawChangeEvent {
   collected_date: string;
   change_summary?: string | null;
   action_recommendation?: string | null;
+  ai_importance?: string | null;
 }
 
 export interface ArticleDiffItem {

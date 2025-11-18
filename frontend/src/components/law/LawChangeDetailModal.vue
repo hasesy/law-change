@@ -25,6 +25,18 @@
           >
             {{ detail.change.law_type_name }}
           </n-tag>
+
+          <!-- ✅ 중요도 표시 (법명 옆, 태그 옆) -->
+          <div
+            v-if="detail?.change.ai_importance"
+            class="importance-chip header-importance-chip"
+            :class="`importance-${detail?.change.ai_importance.toLowerCase()}`"
+          >
+            <span class="importance-dot" />
+            <span class="importance-text">
+              {{ detail?.change.ai_importance }}
+            </span>
+          </div>
         </div>
       </div>
     </template>
@@ -35,9 +47,15 @@
         <div class="summary-card">
           <div class="summary-card-title">변경 내역에 대한 요약</div>
           <div class="summary-card-body">
-            <p v-if="detail.change.change_summary">
-              {{ detail.change.change_summary }}
-            </p>
+            <n-scrollbar
+              v-if="detail.change.change_summary"
+              style="max-height: 140px"
+              :x-scrollable="false"
+            >
+              <p v-if="detail.change.change_summary">
+                {{ detail.change.change_summary }}
+              </p>
+            </n-scrollbar>
             <p v-else class="summary-empty">
               변경 내역 요약이 등록되어 있지 않습니다.
             </p>
@@ -47,9 +65,16 @@
         <div class="summary-card">
           <div class="summary-card-title">조치사항</div>
           <div class="summary-card-body">
-            <p v-if="detail.change.action_recommendation">
-              {{ detail.change.action_recommendation }}
-            </p>
+            <n-scrollbar
+              v-if="detail.change.action_recommendation"
+              style="max-height: 140px"
+              :x-scrollable="false"
+            >
+              <div
+                class="multiline-text"
+                v-html="formatMultiline(detail.change.action_recommendation)"
+              ></div>
+            </n-scrollbar>
             <p v-else class="summary-empty">
               조치사항이 아직 등록되지 않았습니다.
             </p>
@@ -236,6 +261,11 @@ function basicValue(obj: any, key: string) {
   if (!obj) return "-";
   return obj[key] || "-";
 }
+
+function formatMultiline(text: string) {
+  if (!text) return "";
+  return text.replace(/\n/g, "<br>");
+}
 </script>
 
 <style scoped>
@@ -249,6 +279,29 @@ function basicValue(obj: any, key: string) {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* 헤더 중요도 칩 */
+.header-importance-chip {
+  margin-left: 4px;
+}
+
+/* 중요도: 동그라미 + 텍스트 */
+.importance-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* 동그란 점 */
+.importance-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
 }
 
 .modal-title-wrap {
@@ -285,7 +338,6 @@ function basicValue(obj: any, key: string) {
 .summary-card-title {
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 10px;
 }
 
 .summary-card-body {
@@ -295,6 +347,10 @@ function basicValue(obj: any, key: string) {
 
 .summary-empty {
   opacity: 0.7;
+}
+
+.multiline-text {
+  padding: 12px 0;
 }
 
 /* 개정 전/후 기본 정보 */
@@ -413,13 +469,11 @@ function basicValue(obj: any, key: string) {
 /* 공통 높이 제한 */
 .law-change-detail-modal {
   max-height: 88vh;
-  overflow: hidden;
 }
 
-/* 실제 내용 영역만 스크롤 */
 .law-change-detail-modal .n-card__content {
-  max-height: calc(88vh - 80px); /* 헤더/패딩 제외 */
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 /* 다크 테마 모달 배경 */
@@ -512,5 +566,48 @@ function basicValue(obj: any, key: string) {
   background: rgba(59, 130, 246, 0.16);
   padding: 2px 4px;
   border-radius: 4px;
+}
+
+/* 라이트 테마 점 색 */
+.theme-light .importance-chip.importance-low .importance-dot {
+  background-color: #facc15;
+}
+.theme-light .importance-chip.importance-medium .importance-dot {
+  background-color: #f97316;
+}
+.theme-light .importance-chip.importance-high .importance-dot {
+  background-color: #ef4444;
+}
+
+/* 다크 테마 점 색 */
+.theme-dark .importance-chip.importance-low .importance-dot {
+  background-color: #facc15;
+}
+.theme-dark .importance-chip.importance-medium .importance-dot {
+  background-color: #fb923c;
+}
+.theme-dark .importance-chip.importance-high .importance-dot {
+  background-color: #f87171;
+}
+
+/* 텍스트 색상만 살짝 강조 (배경 없음) */
+.theme-light .importance-chip.importance-low {
+  color: #92400e;
+}
+.theme-light .importance-chip.importance-medium {
+  color: #9a3412;
+}
+.theme-light .importance-chip.importance-high {
+  color: #b91c1c;
+}
+
+.theme-dark .importance-chip.importance-low {
+  color: #facc15;
+}
+.theme-dark .importance-chip.importance-medium {
+  color: #fdba74;
+}
+.theme-dark .importance-chip.importance-high {
+  color: #fecaca;
 }
 </style>
