@@ -3,70 +3,22 @@
   <div class="page">
     <!-- 타이틀 -->
     <div class="page-header">
-      <h1 class="page-title">변경이력 목록</h1>
+      <h1 class="page-title">법령 변경</h1>
     </div>
 
     <!-- 🔍 검색 바 영역 -->
-    <n-card
-      class="filter-card"
-      :bordered="true"
-      :content-style="{ padding: '14px 14px' }"
-    >
-      <div class="filter-row">
-        <!-- 검색어 -->
-        <n-input
-          v-model:value="filter.keyword"
-          class="filter-search"
-          size="large"
-          placeholder="법령명을 입력하세요."
-          clearable
-          @keyup.enter="handleSearch"
-        >
-          <template #prefix>
-            <n-icon :component="Search" />
-          </template>
-        </n-input>
-
-        <!-- 기준일자 -->
-        <n-select
-          v-model:value="filter.date_basis"
-          :options="dateBasisOptions"
-          size="large"
-          class="filter-basis"
-        />
-
-        <!-- 시작일 ~ 종료일 -->
-        <div class="filter-dates">
-          <n-date-picker
-            v-model:value="filter.start_date"
-            class="date-picker"
-            type="date"
-            size="large"
-            clearable
-            placeholder="시작일"
-          />
-          <span class="date-separator">-</span>
-          <n-date-picker
-            v-model:value="filter.end_date"
-            class="date-picker"
-            type="date"
-            size="large"
-            clearable
-            placeholder="종료일"
-          />
-        </div>
-
-        <!-- 검색 버튼 -->
-        <n-button
-          type="primary"
-          size="large"
-          class="filter-button"
-          @click="handleSearch"
-        >
-          검색
-        </n-button>
-      </div>
-    </n-card>
+    <SearchFilterBar
+      v-model:keyword="filter.keyword"
+      v-model:categories="filter.categories"
+      v-model:date-basis="filter.date_basis"
+      v-model:start-date="filter.start_date"
+      v-model:end-date="filter.end_date"
+      :date-basis-options="dateBasisOptions"
+      keyword-placeholder="법령명을 입력하세요."
+      :extra-filters="lawChangeExtraFilters"
+      v-model:extra-filter-values="extraFilterValues"
+      @search="handleSearch"
+    />
 
     <div class="page-body">
       <!-- 📋 변경이력 카드 리스트 -->
@@ -77,7 +29,7 @@
               v-for="item in items"
               :key="item.change_id"
               class="law-card"
-              :bordered="false"
+              :bordered="true"
               hoverable
               @click="handleCardClick(item)"
             >
@@ -226,10 +178,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import dayjs from "dayjs";
-import { Search } from "@vicons/tabler";
 import type { LawChangeDetailResponse, LawChangeEvent } from "@/types/law";
 import { fetchLawChanges, fetchLawChangeDetail } from "@/api/lawChange";
 import LawChangeDetailModal from "@/components/law/LawChangeDetailModal.vue";
+import type { AdminRuleCategory } from "@/types/adminRule";
+import SearchFilterBar from "@/components/common/SearchFilterBar.vue";
 
 const items = ref<LawChangeEvent[]>([]);
 const total = ref(0);
@@ -248,11 +201,12 @@ const noOldNewVisible = ref(false);
 
 // 🔹 기본 날짜: 오늘 ~ 7일 전
 const today = dayjs();
-const defaultStart = today.subtract(7, "day").valueOf(); // 7일 전
+const defaultStart = today.subtract(6, "month").valueOf(); // 7일 전
 const defaultEnd = today.valueOf(); // 오늘
 
 const filter = ref({
   keyword: "",
+  categories: [] as AdminRuleCategory[],
   date_basis: "collected" as "promulgation" | "enforcement" | "collected",
   start_date: defaultStart as number | null,
   end_date: defaultEnd as number | null,
@@ -275,13 +229,13 @@ function formatYmd(value: string | number | Date) {
 
 function changeTypeTagType(changeType: string) {
   switch (changeType) {
-    case "전부개정":
+    case "제정":
       return "primary";
     case "일부개정":
       return "success";
     case "타법개정":
       return "warning";
-    case "일부폐지":
+    case "전부개정":
       return "error";
     default:
       return "info";
@@ -307,6 +261,9 @@ async function loadData() {
       page: page.value,
       page_size: pageSize,
       keyword: filter.value.keyword || null,
+      categories: filter.value.categories.length
+        ? filter.value.categories
+        : undefined,
       date_basis: filter.value.date_basis,
       start_date: filter.value.start_date
         ? dayjs(filter.value.start_date).format("YYYY-MM-DD")
@@ -314,7 +271,9 @@ async function loadData() {
       end_date: filter.value.end_date
         ? dayjs(filter.value.end_date).format("YYYY-MM-DD")
         : null,
-      change_type: null as string | null,
+      importance: extraFilterValues.value.importance || undefined,
+      current_hist_cd: extraFilterValues.value.current_hist_cd || undefined,
+      change_type: extraFilterValues.value.change_type || undefined,
     };
 
     const resp = await fetchLawChanges(params);
@@ -354,6 +313,51 @@ async function handleCardClick(row: LawChangeEvent) {
   detailVisible.value = true;
 }
 
+// 🔽 검색바 아래 추가 필터 값
+const extraFilterValues = ref<{
+  importance: string | null;
+  current_hist_cd: string | null;
+  change_type: string | null;
+}>({
+  importance: null,
+  current_hist_cd: null,
+  change_type: null,
+});
+
+// 🔽 이 화면 전용 필터 구성 (검색바에 넘길 배열)
+const lawChangeExtraFilters = [
+  {
+    key: "importance",
+    label: "중요도",
+    options: [
+      { label: "전체", value: null },
+      { label: "HIGH", value: "HIGH" },
+      { label: "MEDIUM", value: "MEDIUM" },
+      { label: "LOW", value: "LOW" },
+    ],
+  },
+  {
+    key: "current_hist_cd",
+    label: "현행/연혁",
+    options: [
+      { label: "전체", value: null },
+      { label: "현행", value: "현행" },
+      { label: "연혁", value: "연혁" },
+    ],
+  },
+  {
+    key: "change_type",
+    label: "제개정 구분",
+    options: [
+      { label: "전체", value: null },
+      { label: "제정", value: "제정" },
+      { label: "일부개정", value: "일부개정" },
+      { label: "타법개정", value: "타법개정" },
+      { label: "전부개정", value: "전부개정" },
+    ],
+  },
+];
+
 onMounted(loadData);
 </script>
 
@@ -379,51 +383,6 @@ onMounted(loadData);
   font-size: 24px;
   font-weight: 700;
   margin: 0;
-}
-
-/* 검색바 영역 */
-.filter-card {
-  border-radius: 10px;
-}
-
-.filter-card :deep(.n-card__content) {
-  border-radius: 10px;
-}
-
-.filter-row :deep(.n-input),
-.filter-row :deep(.n-base-selection) {
-  border-radius: 6px;
-}
-
-.filter-row {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 1.5fr) minmax(0, 2.2fr) auto;
-  gap: 12px;
-  align-items: center;
-}
-
-.filter-search,
-.filter-basis {
-  width: 100%;
-}
-
-.filter-dates {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.date-picker {
-  flex: 1;
-}
-
-.date-separator {
-  font-size: 14px;
-  opacity: 0.7;
-}
-
-.filter-button {
-  padding: 0 24px;
 }
 
 /* 리스트 영역 */
@@ -707,10 +666,6 @@ onMounted(loadData);
 
 /* 반응형 */
 @media (max-width: 1100px) {
-  .filter-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .card-grid {
     grid-template-columns: minmax(0, 1fr);
   }

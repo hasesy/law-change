@@ -1,9 +1,19 @@
+export type AdminRuleCategory =
+  | "CHEMICAL"
+  | "PSM"
+  | "DANGER"
+  | "ENV"
+  | "HEALTH"
+  | "FIRE"
+  | "ETC";
+
 export interface LawChangeEvent {
   change_id: string;
   law_id: string;
   law_name: string;
   law_type_name?: string | null;
   ministry_names?: string | null;
+  category?: AdminRuleCategory | null;
   change_type?: string | null;
   proclamation_no?: string | null;
   proclamation_date?: string | null;

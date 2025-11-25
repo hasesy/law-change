@@ -189,8 +189,12 @@
                 <template #header>
                   <div class="card-header-with-link">
                     <span>최근 개정된 법령 (중요도 MEDIUM 이상)</span>
-                    <!-- TODO: 변경목록 페이지로 라우팅 연결 -->
-                    <n-button text type="primary" size="tiny">
+                    <n-button
+                      text
+                      type="primary"
+                      size="tiny"
+                      @click="goToChangeList"
+                    >
                       전체 보기
                     </n-button>
                   </div>
@@ -282,12 +286,15 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { fetchDashboard } from "@/api/dashboard";
 import type { DashboardResponse, Importance } from "@/types/dashboard";
 
 const range = ref<7 | 15 | 30>(7);
 const loading = ref(false);
 const data = ref<DashboardResponse | null>(null);
+
+const router = useRouter();
 
 async function loadDashboard() {
   loading.value = true;
@@ -344,6 +351,10 @@ function importanceTagType(importance: Importance) {
     default:
       return "default";
   }
+}
+
+function goToChangeList() {
+  router.push("/law-changes");
 }
 
 onMounted(() => {

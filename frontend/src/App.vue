@@ -87,7 +87,7 @@ const menuOptions = [
     key: "/dashboard",
   },
   {
-    label: "법령 변경이력",
+    label: "법령 변경",
     key: "/law-changes",
   },
   {

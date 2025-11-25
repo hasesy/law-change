@@ -6,6 +6,7 @@ export interface LawChangeQuery {
   start_date?: string | null;
   end_date?: string | null;
   keyword?: string | null;
+  categories?: string[] | null;
   change_type?: string | null;
   date_basis?: "promulgation" | "enforcement" | "collected" | null;
   page?: number;
