@@ -5,12 +5,14 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.services.nlic_loader import (load_initial_changes_until_yesterday, load_changes_for_date)
+from app.services.nlic_law_change_loader import (load_initial_changes_until_yesterday, load_changes_for_date)
+from app.services.nlic_admin_rule_loader import load_admin_rules_for_period
+
 
 router = APIRouter()
 
 
-@router.post("/init-changes")
+@router.post("/law/init-changes")
 def init_changes(
     start_date: Optional[date] = None,
     db: Session = Depends(get_db),
@@ -24,7 +26,7 @@ def init_changes(
 
 
 
-@router.post("/fetch-yesterday")
+@router.post("/law/fetch-yesterday")
 def fetch_yesterday(
     db: Session = Depends(get_db),
 ):
@@ -36,7 +38,7 @@ def fetch_yesterday(
     return summary
 
 
-@router.post("/fetch-date")
+@router.post("/law/fetch-date")
 def fetch_for_date(
     target_date: date = Query(..., description="YYYY-MM-DD 형식의 날짜"),
     db: Session = Depends(get_db),
@@ -46,4 +48,22 @@ def fetch_for_date(
     예: /fetch-date?target_date=2025-11-11
     """
     summary = load_changes_for_date(db, target_date=target_date)
+    return summary
+
+
+@router.post("/rule/load/period")
+def load_admin_rules_period(
+    start_date: date = Query(...),
+    end_date: date = Query(...),
+    db: Session = Depends(get_db),
+):
+    """
+    행정규칙 발령일자 기간 기반 수동 적재 API
+    - prmlYd=start_date~end_date
+    """
+    if start_date > end_date:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="start_date가 end_date보다 클 수 없습니다.")
+
+    summary = load_admin_rules_for_period(db, start_date, end_date)
     return summary

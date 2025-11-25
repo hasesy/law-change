@@ -11,8 +11,8 @@ from sqlalchemy.sql import func
 from app.db.base import Base
 
 
-class OldNewInfo(Base):
-    __tablename__ = "old_new_info"
+class LawOldNewInfo(Base):
+    __tablename__ = "law_old_new_info"
 
     mst = Column(Text, primary_key=True)
 

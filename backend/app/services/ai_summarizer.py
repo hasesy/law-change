@@ -14,8 +14,8 @@ from sqlalchemy import select
 from app.core.config import get_settings
 from app.models.law_change_event import LawChangeEvent
 from app.models.law import Law
-from app.models.old_new_info import OldNewInfo
-from app.models.article_diff import ArticleDiff
+from app.models.law_old_new_info import LawOldNewInfo
+from app.models.law_article_diff import LawArticleDiff
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def _format_basic_json(basic: dict | None, label: str) -> str:
     return f"[{label}]\n" + "\n".join(lines)
 
 
-def _format_article_diffs(rows: list[ArticleDiff], max_rows: int = 5) -> str:
+def _format_article_diffs(rows: list[LawArticleDiff], max_rows: int = 5) -> str:
     """ArticleDiff 여러 건을 조문별 변경 요약 형태로 정리."""
     if not rows:
         return "조문별 diff 정보 없음"
@@ -101,11 +101,11 @@ def build_prompt_for_change(db: Session, change: LawChangeEvent) -> str:
                 """
 
     # 🔹 mst 기준으로 OldNewInfo 1건 (있으면)
-    old_new: OldNewInfo | None = (
-        db.query(OldNewInfo)
+    old_new: LawOldNewInfo | None = (
+        db.query(LawOldNewInfo)
         .filter(
-            OldNewInfo.mst == change.mst,
-            OldNewInfo.has_old_new == "Y",
+            LawOldNewInfo.mst == change.mst,
+            LawOldNewInfo.has_old_new == "Y",
         )
         .one_or_none()
     )
@@ -119,8 +119,8 @@ def build_prompt_for_change(db: Session, change: LawChangeEvent) -> str:
 
     # 🔹 mst 기준 ArticleDiff 여러 건
     diff_rows = (
-        db.query(ArticleDiff)
-        .filter(ArticleDiff.mst == change.mst)
+        db.query(LawArticleDiff)
+        .filter(LawArticleDiff.mst == change.mst)
         .all()
     )
     diff_text = _format_article_diffs(diff_rows, max_rows=5)
@@ -246,8 +246,8 @@ def generate_ai_for_pending_changes(db: Session, limit: int = 10) -> int:
     """
     # has_old_new = 'Y'인 mst만 추출
     mst_select = (
-        select(OldNewInfo.mst)
-        .where(OldNewInfo.has_old_new == "Y")
+        select(LawOldNewInfo.mst)
+        .where(LawOldNewInfo.has_old_new == "Y")
     )
 
     # collected_date DESC 기준으로 최신 10개만

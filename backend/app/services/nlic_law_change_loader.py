@@ -5,18 +5,10 @@ from sqlalchemy.orm import Session
 
 from app.models.law import Law
 from app.models.law_change_event import LawChangeEvent
-from app.models.old_new_info import OldNewInfo
-from app.models.article_diff import ArticleDiff
+from app.models.law_old_new_info import LawOldNewInfo
+from app.models.law_article_diff import LawArticleDiff
+from app.services.common import parse_ymd, ensure_list_dict
 from app.services.nlic_client import fetch_law_history_page_by_regdt, fetch_old_new
-
-
-def _parse_ymd(s: str | None) -> date | None:
-    if not s:
-        return None
-    s = str(s).replace("-", "")
-    if len(s) != 8:
-        return None
-    return datetime.strptime(s, "%Y%m%d").date()
 
 
 def _upsert_law(db: Session, item: Dict[str, Any]) -> Law:
@@ -46,16 +38,6 @@ def _upsert_law(db: Session, item: Dict[str, Any]) -> Law:
 
     return law
 
-def _ensure_list(v) -> List[Dict[str, Any]]:
-    """old/new 조문 목록이 dict로 오든 list로 오든 항상 list[dict]로 변환"""
-    if not v:
-        return []
-    if isinstance(v, list):
-        return v
-    if isinstance(v, dict):
-        return [v]
-    # 혹시 모를 이상한 타입 방지용
-    return []
 
 def _create_change_event_if_new(
     db: Session,
@@ -83,8 +65,8 @@ def _create_change_event_if_new(
     # 신규 이벤트 후보 값들 먼저 파싱
     change_type = item.get("제개정구분명")
     proclamation_no = item.get("공포번호")
-    proclamation_date = _parse_ymd(item.get("공포일자"))
-    enforce_date = _parse_ymd(item.get("시행일자"))
+    proclamation_date = parse_ymd(item.get("공포일자"))
+    enforce_date = parse_ymd(item.get("시행일자"))
     current_hist_cd = item.get("현행연혁코드")
 
   # ✅ MST + 메타 정보까지 모두 같은 이벤트가 이미 있으면 스킵
@@ -131,7 +113,7 @@ def _save_old_new_and_articles(db: Session, event: LawChangeEvent) -> None:
     mst = event.mst
     
      # ✅ mst 기준으로 이미 old_new_info가 있으면 스킵
-    existing = db.get(OldNewInfo, mst)
+    existing = db.get(LawOldNewInfo, mst)
     if existing:
         return
 
@@ -146,12 +128,12 @@ def _save_old_new_and_articles(db: Session, event: LawChangeEvent) -> None:
     raw_old = (service.get("구조문목록") or {}).get("조문")
     raw_new = (service.get("신조문목록") or {}).get("조문")
 
-    old_list: List[Dict[str, Any]] = _ensure_list(raw_old)
-    new_list: List[Dict[str, Any]] = _ensure_list(raw_new)
+    old_list: List[Dict[str, Any]] = ensure_list_dict(raw_old)
+    new_list: List[Dict[str, Any]] = ensure_list_dict(raw_new)
 
     has_old_new = "Y" if (old_list or new_list) else "N"
 
-    info = OldNewInfo(
+    info = LawOldNewInfo(
         mst=mst,      
         has_old_new=has_old_new,
         old_basic=old_basic,
@@ -173,7 +155,7 @@ def _save_old_new_and_articles(db: Session, event: LawChangeEvent) -> None:
         new_content = new_item.get("content") or ""
 
         # 🔹 ArticleDiff도 mst 기준으로만 연결
-        diff = ArticleDiff(
+        diff = LawArticleDiff(
             mst=mst,
             old_no=old_no,
             old_content=old_content,

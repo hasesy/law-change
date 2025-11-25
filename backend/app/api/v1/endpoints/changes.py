@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db   
 from app.models.law import Law
 from app.models.law_change_event import LawChangeEvent
-from app.models.old_new_info import OldNewInfo
-from app.models.article_diff import ArticleDiff
+from app.models.law_old_new_info import LawOldNewInfo
+from app.models.law_article_diff import LawArticleDiff
 from app.schemas.law_change import (
     LawChangeListResponse,
     LawChangeListItem,
@@ -148,9 +148,9 @@ def get_law_change_detail(
     )
 
      # 2) 신·구 기본정보 (mst 기준으로 1건)
-    oni: Optional[OldNewInfo] = (
-        db.query(OldNewInfo)
-        .filter(OldNewInfo.mst == mst)
+    oni: Optional[LawOldNewInfo] = (
+        db.query(LawOldNewInfo)
+        .filter(LawOldNewInfo.mst == mst)
         .first()
     )
 
@@ -165,12 +165,12 @@ def get_law_change_detail(
 
     # 조문 비교 목록
     article_rows = (
-        db.query(ArticleDiff)
-        .filter(ArticleDiff.mst == mst)
+        db.query(LawArticleDiff)
+        .filter(LawArticleDiff.mst == mst)
         .order_by(
-            ArticleDiff.old_no.nullsfirst(),
-            ArticleDiff.new_no.nullsfirst(),
-            ArticleDiff.diff_id,
+            LawArticleDiff.old_no.nullsfirst(),
+            LawArticleDiff.new_no.nullsfirst(),
+            LawArticleDiff.diff_id,
         )
         .all()
     )

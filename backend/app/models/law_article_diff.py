@@ -10,8 +10,8 @@ from sqlalchemy.sql import func, text
 from app.db.base import Base
 
 
-class ArticleDiff(Base):
-    __tablename__ = "article_diff"
+class LawArticleDiff(Base):
+    __tablename__ = "law_article_diff"
 
     diff_id = Column(
         UUID(as_uuid=True),
@@ -33,4 +33,4 @@ class ArticleDiff(Base):
     )
 
 
-Index("idx_article_diff_mst", ArticleDiff.mst)
+Index("idx_article_diff_mst", LawArticleDiff.mst)

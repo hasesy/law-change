@@ -110,3 +110,86 @@ def fetch_old_new(mst: str) -> Dict[str, Any]:
         max_retries=5,   # 60초 * 5번 → 진짜 안 되면 그때 실패
         backoff_sec=2.0,
     )
+    
+
+def fetch_admin_rule_page_by_issue_date(
+    issue_date: date,
+    page: int = 1,
+    display: int = 100,
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """
+    행정규칙(admrul) 목록 - 발령일자(date) 기준 한 페이지 조회
+    return: (items, has_next)
+    """
+    issue_str = issue_date.strftime("%Y%m%d")
+
+    params = {
+        "OC": settings.nlic_oc,
+        "target": "admrul",
+        "type": "JSON",
+        "date": issue_str,
+        "page": page,
+        "display": display,
+    }
+
+    data = _request_json(settings.nlic_history_url, params)
+
+    service = data.get("AdmRulSearch") or data
+    raw_items = service.get("admrul") or []
+
+    if isinstance(raw_items, dict):
+        items: List[Dict[str, Any]] = [raw_items]
+    elif isinstance(raw_items, list):
+        items = raw_items
+    else:
+        items = []
+
+    total_cnt = int(service.get("totalCnt", len(items)))
+    display_ret = int(service.get("numOfRows", service.get("display", display)))
+    page_ret = int(service.get("page", page))
+
+    max_page = (total_cnt + display_ret - 1) // display_ret
+    has_next = page_ret < max_page
+
+    return items, has_next
+
+
+def fetch_admin_rule_page_by_issue_range(
+    start_date: date,
+    end_date: date,
+    page: int = 1,
+    display: int = 100,
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """
+    행정규칙(admrul) 목록 - 발령일자 기간(prmlYd) 기준 한 페이지 조회
+    """
+    prml_yd = f"{start_date.strftime('%Y%m%d')}~{end_date.strftime('%Y%m%d')}"
+    params = {
+        "OC": settings.nlic_oc,
+        "target": "admrul",
+        "type": "JSON",
+        "prmlYd": prml_yd,
+        "page": page,
+        "display": display,
+    }
+
+    data = _request_json(settings.nlic_history_url, params)
+
+    service = data.get("AdmRulSearch") or data
+    raw_items = service.get("admrul") or []
+
+    if isinstance(raw_items, dict):
+        items: List[Dict[str, Any]] = [raw_items]
+    elif isinstance(raw_items, list):
+        items = raw_items
+    else:
+        items = []
+
+    total_cnt = int(service.get("totalCnt", len(items)))
+    display_ret = int(service.get("numOfRows", service.get("display", display)))
+    page_ret = int(service.get("page", page))
+
+    max_page = (total_cnt + display_ret - 1)
+    has_next = page_ret < max_page
+
+    return items, has_next
