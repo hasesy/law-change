@@ -17,15 +17,21 @@
         <n-input
           v-model:value="filter.keyword"
           class="filter-search"
+          size="large"
           placeholder="법령명을 입력하세요."
           clearable
           @keyup.enter="handleSearch"
-        />
+        >
+          <template #prefix>
+            <n-icon :component="Search" />
+          </template>
+        </n-input>
 
         <!-- 기준일자 -->
         <n-select
           v-model:value="filter.date_basis"
           :options="dateBasisOptions"
+          size="large"
           class="filter-basis"
         />
 
@@ -35,6 +41,7 @@
             v-model:value="filter.start_date"
             class="date-picker"
             type="date"
+            size="large"
             clearable
             placeholder="시작일"
           />
@@ -43,6 +50,7 @@
             v-model:value="filter.end_date"
             class="date-picker"
             type="date"
+            size="large"
             clearable
             placeholder="종료일"
           />
@@ -218,6 +226,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import dayjs from "dayjs";
+import { Search } from "@vicons/tabler";
 import type { LawChangeDetailResponse, LawChangeEvent } from "@/types/law";
 import { fetchLawChanges, fetchLawChangeDetail } from "@/api/lawChange";
 import LawChangeDetailModal from "@/components/law/LawChangeDetailModal.vue";
@@ -375,6 +384,15 @@ onMounted(loadData);
 /* 검색바 영역 */
 .filter-card {
   border-radius: 10px;
+}
+
+.filter-card :deep(.n-card__content) {
+  border-radius: 10px;
+}
+
+.filter-row :deep(.n-input),
+.filter-row :deep(.n-base-selection) {
+  border-radius: 6px;
 }
 
 .filter-row {

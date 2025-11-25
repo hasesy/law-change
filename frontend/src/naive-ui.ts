@@ -29,6 +29,13 @@ import {
   NMenu,
   NModal,
   NScrollbar,
+  NGrid,
+  NGi,
+  NStatistic,
+  NProgress,
+  NTab,
+  NTabs,
+  NTabPane,
 } from "naive-ui";
 
 export function createNaiveUi() {
@@ -62,6 +69,13 @@ export function createNaiveUi() {
       NMenu,
       NModal,
       NScrollbar,
+      NGrid,
+      NGi,
+      NStatistic,
+      NProgress,
+      NTab,
+      NTabPane,
+      NTabs,
     ],
   });
 }

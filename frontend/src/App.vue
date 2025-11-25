@@ -50,15 +50,6 @@
           collapse-mode="width"
           show-trigger="bar"
         >
-          <div
-            style="
-              padding: 12px 12px 8px;
-              font-size: 11px;
-              color: rgba(148, 163, 184, 0.9);
-            "
-          >
-            메인 메뉴
-          </div>
           <n-menu
             :options="menuOptions"
             :value="activeKey"
@@ -67,13 +58,13 @@
         </n-layout-sider>
 
         <!-- 오른쪽 본문 -->
-        <n-layout-content style="padding: 16px 24px 24px; overflow: auto">
-          <n-scrollbar style="height: 100%">
+        <n-scrollbar style="height: 100%">
+          <n-layout-content style="padding: 16px 24px 24px; overflow: auto">
             <div>
               <router-view />
             </div>
-          </n-scrollbar>
-        </n-layout-content>
+          </n-layout-content>
+        </n-scrollbar>
       </n-layout>
     </n-layout>
   </n-config-provider>
@@ -99,9 +90,13 @@ const menuOptions = [
     label: "법령 변경이력",
     key: "/law-changes",
   },
+  {
+    label: "행정규칙",
+    key: "/admin-rules",
+  },
 ];
 
-const isDark = ref(true);
+const isDark = ref(false);
 
 // 🔹 실제 Naive UI theme 객체
 const currentTheme = computed(() => (isDark.value ? darkTheme : null));
@@ -136,7 +131,7 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
       Card: {
         // 카드 배경은 body보다 확실히 밝게
         color: "#0f172a",
-        borderColor: "rgba(148, 163, 184, 0.28)",
+        borderColor: "#1F2937",
         boxShadow: "0 16px 40px rgba(15, 23, 42, 0.75)",
         borderRadius: "16px",
       },
@@ -145,6 +140,12 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
         headerColor: "#020617",
         siderColor: "#020617",
         footerColor: "#020617",
+      },
+      Tabs: {
+        tabBorderColor: "rgba(255, 255, 255, 0.08)",
+        tabColorSegment: "#020617", // 활성배경
+        colorSegment: "#0f172a", // 비활성배경
+        tabTextColorActiveSegment: "#3689f4", // 활성 글씨색
       },
     };
   }
@@ -170,6 +171,12 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
     },
     Card: {
       borderRadius: "16px",
+    },
+    Tabs: {
+      tabBorderColor: "#FFFFFF",
+      tabColorSegment: "#F3F4F6", // 활성배경
+      colorSegment: "#FFFFFF", // 비활성배경
+      tabTextColorActiveSegment: "#3689f4", // 활성 글씨색
     },
   };
 });

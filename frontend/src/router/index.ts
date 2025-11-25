@@ -6,6 +6,7 @@ import {
 } from "vue-router";
 import Dashboard from "../views/Dashboard.vue";
 import LawChangeList from "../views/LawChangeList.vue";
+import AdminRuleList from "@/views/AdminRuleList.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -21,6 +22,11 @@ const routes: RouteRecordRaw[] = [
     path: "/law-changes",
     name: "LawChangeList",
     component: LawChangeList,
+  },
+  {
+    path: "/admin-rules",
+    name: "AdminRuleList",
+    component: AdminRuleList,
   },
 ];
 

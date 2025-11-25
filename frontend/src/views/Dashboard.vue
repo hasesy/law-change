@@ -1,383 +1,573 @@
 <!-- src/views/Dashboard.vue -->
 <template>
-  <div class="dashboard-page">
-    <!-- 상단 타이틀 -->
-    <div class="dashboard-header">
-      <h1 class="dashboard-title">대시보드</h1>
-      <p class="dashboard-subtitle">
-        최근 법령 개정 현황 및 요약입니다. ({{ referenceDate }} 기준)
-      </p>
-    </div>
+  <div class="page dashboard-page">
+    <!-- 헤더 영역 -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">대시보드</h1>
+      </div>
 
-    <!-- 🔹 요약 카드 2개 (전날 변경 이력 / 검토 필요 건수) -->
-    <div class="summary-row">
-      <n-card
-        v-for="stat in stats"
-        :key="stat.key"
-        class="summary-card"
+      <!-- 기간 선택 Tabs (segment) -->
+      <n-tabs
+        class="range-tabs"
+        v-model:value="range"
+        type="segment"
+        animated
         size="small"
-        :bordered="true"
+        @update:value="onRangeChange"
       >
-        <div class="summary-label">{{ stat.label }}</div>
-        <div class="summary-main">
-          <span class="summary-value">{{ stat.value }}</span>
-          <span class="summary-unit">{{ stat.unit }}</span>
-        </div>
-      </n-card>
+        <n-tab-pane :name="7" tab="최근 7일" />
+        <n-tab-pane :name="15" tab="15일" />
+        <n-tab-pane :name="30" tab="한 달" />
+      </n-tabs>
     </div>
 
-    <!-- 🔹 하단 2컬럼 레이아웃 -->
-    <div class="bottom-layout">
-      <!-- 왼쪽: 최근 개정된 법령 -->
-      <div class="left-panel">
-        <n-card class="section-card" :bordered="true">
-          <template #header>
-            <div class="section-header">
-              <span class="section-title">최근 개정된 법령</span>
-              <n-button text size="tiny">전체 보기</n-button>
-            </div>
-          </template>
+    <n-spin :show="loading" size="large">
+      <template v-if="data">
+        <!-- 상단 통계 카드들 -->
+        <div class="dashboard-content">
+          <n-grid
+            cols="1 768:2 1024:3 1400:5"
+            :x-gap="16"
+            :y-gap="16"
+            class="top-cards"
+          >
+            <!-- 1. 최근 변경 이력 -->
+            <n-gi>
+              <n-card class="stat-card" :bordered="false">
+                <div class="stat-card-body">
+                  <div class="stat-card-left">
+                    <div class="stat-card-title">최근 변경 이력</div>
+                    <n-statistic :value="data.overview.total_changes">
+                      <template #suffix>건</template>
+                    </n-statistic>
+                  </div>
+                  <div class="stat-card-right">
+                    <n-progress
+                      type="circle"
+                      :percentage="100"
+                      :stroke-width="10"
+                      :show-indicator="false"
+                    />
+                  </div>
+                </div>
+              </n-card>
+            </n-gi>
 
-          <div class="recent-list">
-            <n-card
-              v-for="law in recentLaws"
-              :key="law.id"
-              class="recent-law-card"
-              size="small"
-              :bordered="false"
+            <!-- 2. 검토 필요 -->
+            <n-gi>
+              <n-card class="stat-card" :bordered="false">
+                <div class="stat-card-body">
+                  <div class="stat-card-left">
+                    <div class="stat-card-title">검토 필요</div>
+                    <n-statistic :value="data.overview.need_review_count">
+                      <template #suffix>건</template>
+                    </n-statistic>
+                  </div>
+                  <div class="stat-card-right">
+                    <n-progress
+                      type="circle"
+                      :percentage="reviewRatio"
+                      :stroke-width="10"
+                      :show-indicator="false"
+                      status="warning"
+                    />
+                  </div>
+                </div>
+              </n-card>
+            </n-gi>
+
+            <!-- 3. 안전 관련 -->
+            <n-gi>
+              <n-card class="stat-card" :bordered="false">
+                <div class="stat-card-body">
+                  <div class="stat-card-left">
+                    <div class="stat-card-title">안전 관련</div>
+                    <n-statistic :value="data.overview.safety_changes">
+                      <template #suffix>건</template>
+                    </n-statistic>
+                  </div>
+                  <div class="stat-card-right">
+                    <n-progress
+                      type="circle"
+                      :percentage="safetyRatio"
+                      :stroke-width="10"
+                      :show-indicator="false"
+                      status="success"
+                    />
+                  </div>
+                </div>
+              </n-card>
+            </n-gi>
+
+            <!-- 4. 화학 관련 -->
+            <n-gi>
+              <n-card class="stat-card" :bordered="false">
+                <div class="stat-card-body">
+                  <div class="stat-card-left">
+                    <div class="stat-card-title">화학 관련</div>
+                    <n-statistic :value="data.overview.chemical_changes">
+                      <template #suffix>건</template>
+                    </n-statistic>
+                  </div>
+                  <div class="stat-card-right">
+                    <n-progress
+                      type="circle"
+                      :percentage="chemicalRatio"
+                      :stroke-width="10"
+                      :show-indicator="false"
+                      status="info"
+                    />
+                  </div>
+                </div>
+              </n-card>
+            </n-gi>
+
+            <!-- 5. 환경 관련 -->
+            <n-gi>
+              <n-card class="stat-card" :bordered="false">
+                <div class="stat-card-body">
+                  <div class="stat-card-left">
+                    <div class="stat-card-title">환경 관련</div>
+                    <n-statistic :value="data.overview.environment_changes">
+                      <template #suffix>건</template>
+                    </n-statistic>
+                  </div>
+                  <div class="stat-card-right">
+                    <n-progress
+                      type="circle"
+                      :percentage="environmentRatio"
+                      :stroke-width="10"
+                      :show-indicator="false"
+                      status="error"
+                    />
+                  </div>
+                </div>
+              </n-card>
+            </n-gi>
+          </n-grid>
+
+          <!-- 도메인별 카드 -->
+          <n-grid cols="1 1024:3" :x-gap="16" :y-gap="16" class="domain-cards">
+            <n-gi
+              v-for="domain in data.domain_summary.domains"
+              :key="domain.domain"
             >
-              <div class="recent-law-header">
-                <div class="recent-law-title">
-                  [{{ law.source }}] {{ law.title }}
+              <n-card class="domain-card" :bordered="false">
+                <div class="domain-card-header">
+                  <span style="font-size: 15px"
+                    >{{ domain.domain_name }} 관련 법령</span
+                  >
+                  <span class="domain-total">
+                    {{ domain.total_changes }}건
+                  </span>
                 </div>
-                <div class="pill pill-date">
-                  {{ law.changeDate }}
-                </div>
-              </div>
+                <ul class="domain-law-list">
+                  <li
+                    v-for="law in domain.laws"
+                    :key="law.law_id"
+                    class="domain-law-item"
+                  >
+                    <span class="law-name">{{ law.law_name }}</span>
+                    <span class="law-count">{{ law.change_count }}건</span>
+                  </li>
+                </ul>
+              </n-card>
+            </n-gi>
+          </n-grid>
 
-              <div class="diff-block">
-                <div class="diff-line diff-old">
-                  {{ law.oldText }}
-                </div>
-                <div class="diff-line diff-new">
-                  {{ law.newText }}
-                </div>
-              </div>
-            </n-card>
-          </div>
-        </n-card>
-      </div>
+          <!-- 하단: 최근 개정된 법령 & 주요 조치사항 -->
+          <n-grid
+            cols="1 1024:3"
+            :x-gap="16"
+            :y-gap="16"
+            class="bottom-section"
+          >
+            <!-- 최근 개정된 법령 -->
+            <n-gi :span="2">
+              <n-card class="recent-card" :bordered="false">
+                <template #header>
+                  <div class="card-header-with-link">
+                    <span>최근 개정된 법령 (중요도 MEDIUM 이상)</span>
+                    <!-- TODO: 변경목록 페이지로 라우팅 연결 -->
+                    <n-button text type="primary" size="tiny">
+                      전체 보기
+                    </n-button>
+                  </div>
+                </template>
 
-      <!-- 오른쪽: 주요 조치사항 -->
-      <div class="right-panel">
-        <n-card
-          class="section-card actions-card"
-          :bordered="true"
-          title="주요 조치사항"
-        >
-          <div class="actions-list">
-            <div v-for="action in actions" :key="action.id" class="action-item">
-              <div class="action-icon" :class="'action-icon-' + action.type">
-                <span>{{ action.icon }}</span>
-              </div>
-              <div class="action-text">
-                <div class="action-title">{{ action.title }}</div>
-                <div class="action-desc">
-                  {{ action.description }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </n-card>
-      </div>
-    </div>
+                <template v-if="data.recent_important_changes.items.length">
+                  <div
+                    v-for="item in data.recent_important_changes.items"
+                    :key="item.change_id"
+                    class="recent-item"
+                  >
+                    <div class="recent-title-row">
+                      <span class="recent-law-name">
+                        {{ item.law_name }}
+                      </span>
+                      <n-tag size="small" round>
+                        {{ item.change_date }}
+                      </n-tag>
+                    </div>
+                    <div class="recent-meta">
+                      <n-tag
+                        size="tiny"
+                        :type="importanceTagType(item.importance)"
+                        round
+                      >
+                        {{ item.importance }}
+                      </n-tag>
+                      <span v-if="item.change_type" class="recent-change-type">
+                        · {{ item.change_type }}
+                      </span>
+                    </div>
+                    <p class="recent-summary">
+                      {{ item.summary || "변경 요약 정보가 없습니다." }}
+                    </p>
+                  </div>
+                </template>
+                <template v-else>
+                  <n-empty description="표시할 변경 이력이 없습니다." />
+                </template>
+              </n-card>
+            </n-gi>
+
+            <!-- 주요 조치사항 -->
+            <n-gi>
+              <n-card class="action-card" :bordered="false">
+                <template #header>
+                  <span>주요 조치사항</span>
+                </template>
+
+                <template v-if="data.action_items.items.length">
+                  <div
+                    v-for="item in data.action_items.items"
+                    :key="item.change_id + item.action_title"
+                    class="action-item"
+                  >
+                    <div class="action-header">
+                      <n-tag
+                        size="small"
+                        :type="importanceTagType(item.importance)"
+                        round
+                      >
+                        {{ item.importance }}
+                      </n-tag>
+                      <span class="action-law-name">{{ item.law_name }}</span>
+                    </div>
+                    <div class="action-title">
+                      {{ item.action_title }}
+                    </div>
+                    <p class="action-detail">
+                      {{ item.action_detail }}
+                    </p>
+                  </div>
+                </template>
+                <template v-else>
+                  <n-empty description="표시할 조치사항이 없습니다." />
+                </template>
+              </n-card>
+            </n-gi>
+          </n-grid>
+        </div>
+      </template>
+
+      <template v-else>
+        <n-empty description="대시보드 데이터를 불러오지 못했습니다." />
+      </template>
+    </n-spin>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import dayjs from "dayjs";
+import { ref, computed, onMounted } from "vue";
+import { fetchDashboard } from "@/api/dashboard";
+import type { DashboardResponse, Importance } from "@/types/dashboard";
 
-const referenceDate = computed(() => dayjs().format("YYYY-MM-DD"));
+const range = ref<7 | 15 | 30>(7);
+const loading = ref(false);
+const data = ref<DashboardResponse | null>(null);
 
-// 🔹 요약 카드 2개만
-const stats = [
-  {
-    key: "changes",
-    label: "전날 변경된 이력 개수",
-    value: 12,
-    unit: "건",
-  },
-  {
-    key: "review",
-    label: "검토 필요 건수",
-    value: 3,
-    unit: "건",
-  },
-];
+async function loadDashboard() {
+  loading.value = true;
+  try {
+    data.value = await fetchDashboard(range.value);
+  } finally {
+    loading.value = false;
+  }
+}
 
-const recentLaws = [
-  {
-    id: 1,
-    source: "법제처",
-    title: "제4조(정의) 일부 개정",
-    changeDate: "2025-10-02",
-    version: "20251001",
-    oldText: '"유해물질"',
-    newText: '"특수관리물질"',
-  },
-  {
-    id: 2,
-    source: "법제처",
-    title: "별표1 개정",
-    changeDate: "2025-10-20",
-    version: "20251020",
-    oldText: "1ppm",
-    newText: "0.5ppm",
-  },
-];
+function onRangeChange(value: 7 | 15 | 30) {
+  range.value = value;
+  loadDashboard();
+}
 
-const actions = [
-  {
-    id: 1,
-    type: "danger",
-    icon: "!",
-    title: "내부 규정 업데이트",
-    description:
-      "제4조(정의) 개정에 따라 유해물질 관련 내부 가이드를 수정해야 합니다.",
-  },
-  {
-    id: 2,
-    type: "warning",
-    icon: "⚠",
-    title: "임직원 교육 실시",
-    description:
-      "별표1 개정에 따른 변경 취급기준 사항에 대해 관련 부서 교육이 필요합니다.",
-  },
-  {
-    id: 3,
-    type: "info",
-    icon: "✓",
-    title: "보고 양식 확인",
-    description:
-      "시행령 제11조2 개정으로 인한 보고 주기 변경사항을 확인하고 시스템에 반영합니다.",
-  },
-];
+const totalChanges = computed(() => data.value?.overview.total_changes ?? 0);
+
+const reviewRatio = computed(() => {
+  if (!totalChanges.value) return 0;
+  return Math.round(
+    ((data.value?.overview.need_review_count ?? 0) / totalChanges.value) * 100
+  );
+});
+
+const safetyRatio = computed(() => {
+  if (!totalChanges.value) return 0;
+  return Math.round(
+    ((data.value?.overview.safety_changes ?? 0) / totalChanges.value) * 100
+  );
+});
+
+const chemicalRatio = computed(() => {
+  if (!totalChanges.value) return 0;
+  return Math.round(
+    ((data.value?.overview.chemical_changes ?? 0) / totalChanges.value) * 100
+  );
+});
+
+const environmentRatio = computed(() => {
+  if (!totalChanges.value) return 0;
+  return Math.round(
+    ((data.value?.overview.environment_changes ?? 0) / totalChanges.value) * 100
+  );
+});
+
+function importanceTagType(importance: Importance) {
+  switch (importance) {
+    case "HIGH":
+      return "error";
+    case "MEDIUM":
+      return "warning";
+    case "LOW":
+      return "info";
+    default:
+      return "default";
+  }
+}
+
+onMounted(() => {
+  loadDashboard();
+});
 </script>
 
 <style scoped>
 .dashboard-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
-.dashboard-header {
-  margin-bottom: 4px;
+/* 헤더 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
 }
 
-.dashboard-title {
-  margin: 0;
+.page-title {
   font-size: 24px;
   font-weight: 700;
+  margin: 0;
 }
 
-.dashboard-subtitle {
+.page-subtitle {
   margin: 4px 0 0;
-  font-size: 13px;
-  opacity: 0.7;
-}
-
-/* 🔹 요약 카드 2개 – 가로로 길게 + 반응형 */
-.summary-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-  margin-top: 4px;
-}
-
-.summary-card {
-  border-radius: 16px;
-  padding: 16px 20px;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
-}
-
-.summary-label {
-  font-size: 13px;
-  opacity: 0.8;
-  margin-bottom: 8px;
-}
-
-.summary-main {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.summary-value {
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.summary-unit {
   font-size: 14px;
-  opacity: 0.8;
+  opacity: 0.72;
 }
 
-/* 🔹 하단 2컬럼 */
-.bottom-layout {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)); /* ← 1:1 */
-  gap: 16px;
-  margin-top: 4px;
+/* 상단 카드 */
+.top-cards {
+  margin-top: 8px;
 }
 
-.section-card {
-  border-radius: 16px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+.stat-card {
+  display: flex;
+  flex-direction: column;
 }
 
-/* 최근 개정된 법령 */
-.section-header {
+.stat-card-title {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* 좌우 2컬럼 레이아웃 */
+.stat-card-body {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.section-title {
-  font-weight: 600;
-}
-
-.recent-list {
+/* 왼쪽 컬럼: 제목 + 숫자 세로 */
+.stat-card-left {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
 }
 
-.recent-law-card {
-  border-radius: 14px;
+/* 오른쪽 progress 크기 */
+.stat-card-right .n-progress {
+  width: 80px;
+  height: 80px;
 }
 
-.recent-law-header {
+/* 상단 통계 카드 숫자만 크게 + 두껍게 */
+.stat-card :deep(.n-statistic-value__content) {
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.stat-card :deep(.n-statistic-value__suffix) {
+  font-size: 20px;
+}
+
+/* 도메인 카드 */
+.domain-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.recent-law-title {
   font-weight: 600;
-  font-size: 14px;
+  margin-bottom: 8px;
 }
 
-.pill {
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 11px;
+.domain-total {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.domain-law-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.domain-law-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.domain-law-item + .domain-law-item {
+  border-top: 1px solid rgba(148, 163, 184, 0.24);
+  padding-top: 6px;
+  margin-top: 6px;
+}
+
+.law-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pill-date {
-  opacity: 0.85;
-  border: 1px solid rgba(148, 163, 184, 0.5);
+.law-count {
+  font-weight: 600;
+}
+
+/* 하단 섹션 */
+.bottom-section {
+  margin-top: 8px;
+}
+
+.card-header-with-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 최근 변경 카드 */
+.recent-item {
+  padding: 10px 0;
+}
+
+.recent-item + .recent-item {
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.recent-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recent-law-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-right: 8px;
 }
 
 .recent-meta {
+  margin-top: 4px;
   font-size: 12px;
-  opacity: 0.7;
-  margin-bottom: 8px;
-}
-
-.diff-block {
-  margin-top: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.diff-label {
-  font-size: 11px;
-  opacity: 0.7;
-}
-
-.diff-label-new {
-  margin-top: 4px;
-}
-
-.diff-line {
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 13px;
-}
-
-.diff-old {
-  background: rgba(248, 113, 113, 0.18);
-}
-
-.diff-new {
-  background: rgba(74, 222, 128, 0.18);
-}
-
-/* 조치사항 */
-.actions-card {
-  height: 100%;
-}
-
-.actions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.action-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.action-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 18px;
+  gap: 4px;
+  opacity: 0.85;
 }
 
-.action-icon-danger {
-  background: rgba(239, 68, 68, 0.18);
+.recent-change-type {
+  font-size: 12px;
 }
 
-.action-icon-warning {
-  background: rgba(234, 179, 8, 0.18);
+.recent-summary {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.action-icon-info {
-  background: rgba(59, 130, 246, 0.18);
+/* 조치사항 카드 */
+.action-item {
+  padding: 10px 0;
 }
 
-.action-text {
-  flex: 1;
+.action-item + .action-item {
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.action-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.action-law-name {
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .action-title {
-  font-size: 14px;
   font-weight: 600;
-  margin-bottom: 2px;
+  font-size: 14px;
+  margin-bottom: 4px;
 }
 
-.action-desc {
-  font-size: 12px;
-  opacity: 0.8;
+.action-detail {
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-/* 좁은 화면에서는 아래로 한 줄씩 */
-@media (max-width: 1024px) {
-  .bottom-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* 세 개의 n-grid 블록 사이 간격 */
+}
+
+.range-tabs {
+  width: fit-content;
+  min-width: 260px;
+}
+
+.range-tabs :deep(.n-tabs-nav--segment-type) {
+  height: 36px;
+}
+
+.range-tabs :deep(.n-tabs-tab) {
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+.range-tabs :deep(.n-tabs-tab--active) {
+  height: 30px;
 }
 </style>
