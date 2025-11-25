@@ -11,8 +11,8 @@ class Settings(BaseSettings):
 
     # NLIC settings
     nlic_oc: str
-    nlic_history_url: str
-    nlic_oldnew_url: str
+    nlic_list_url: str
+    nlic_detail_url: str
     
     # AI Settings
     ollama_base_url: str = "http://localhost:11434"

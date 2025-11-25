@@ -5,8 +5,8 @@ from typing import Dict, List, Tuple
 from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 
-from app.models.law import Law
-from app.models.law_change_event import LawChangeEvent
+from app.models.law.law import Law
+from app.models.law.law_change_event import LawChangeEvent
 from app.schemas.dashboard import (
     DashboardResponse,
     Overview,

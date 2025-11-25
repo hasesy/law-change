@@ -1,6 +1,9 @@
-from sqlalchemy import Column, Text, DateTime
+from sqlalchemy import (
+    Column, Text, DateTime, func, Enum as SAEnum
+)
 from sqlalchemy.sql import func
 from app.db.base import Base
+from app.enums.admin_rule_category import AdminRuleCategory
 
 
 class Law(Base):
@@ -12,6 +15,11 @@ class Law(Base):
     law_type_name = Column(Text, nullable=True)
     ministry_names = Column(Text, nullable=True)
     ministry_codes = Column(Text, nullable=True)
+    category = Column(
+        SAEnum(AdminRuleCategory, name="admin_rule_category"),
+        nullable=False,
+        default=AdminRuleCategory.ETC,
+    )
 
     created_at = Column(
         DateTime(timezone=True),

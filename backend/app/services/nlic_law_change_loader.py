@@ -3,12 +3,13 @@ from typing import Dict, Any, List
 
 from sqlalchemy.orm import Session
 
-from app.models.law import Law
-from app.models.law_change_event import LawChangeEvent
-from app.models.law_old_new_info import LawOldNewInfo
-from app.models.law_article_diff import LawArticleDiff
+from app.models.law.law import Law
+from app.models.law.law_change_event import LawChangeEvent
+from app.models.law.law_old_new_info import LawOldNewInfo
+from app.models.law.law_article_diff import LawArticleDiff
 from app.services.common import parse_ymd, ensure_list_dict
-from app.services.nlic_client import fetch_law_history_page_by_regdt, fetch_old_new
+from app.services.nlic_client import fetch_law_history_page_by_regdt, fetch_law_old_new
+from app.services.categorizer import classify_law
 
 
 def _upsert_law(db: Session, item: Dict[str, Any]) -> Law:
@@ -27,14 +28,25 @@ def _upsert_law(db: Session, item: Dict[str, Any]) -> Law:
         raise ValueError(f"법령ID 없음: {item}")
 
     law = db.get(Law, law_id)
+    is_new = False
     if not law:
         law = Law(law_id=law_id)
         db.add(law)
+        is_new = True
 
-    law.law_name = item.get("법령명한글") or law.law_name
-    law.law_type_name = item.get("법령구분명") or law.law_type_name
-    law.ministry_names = item.get("소관부처명") or law.ministry_names
-    law.ministry_codes = item.get("소관부처코드") or law.ministry_codes
+    law_name = item.get("법령명한글") or law.law_name
+    law_type_name = item.get("법령구분명") or law.law_type_name
+    ministry_names = item.get("소관부처명") or law.ministry_names
+    ministry_codes = item.get("소관부처코드") or law.ministry_codes
+
+    law.law_name = law_name
+    law.law_type_name = law_type_name
+    law.ministry_names = ministry_names
+    law.ministry_codes = ministry_codes
+    
+    # ✅ 카테고리 세팅
+    if is_new or law.category is None:
+        law.category = classify_law(law_id=law_id, law_name=law_name)
 
     return law
 
@@ -117,7 +129,7 @@ def _save_old_new_and_articles(db: Session, event: LawChangeEvent) -> None:
     if existing:
         return
 
-    data = fetch_old_new(mst)
+    data = fetch_law_old_new(mst)
 
     service = data.get("OldAndNewService") or data
 

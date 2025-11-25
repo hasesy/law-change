@@ -1,8 +1,9 @@
 # app/schemas/law_change.py
 from datetime import date
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from uuid import UUID
 from pydantic import BaseModel
+from app.enums.admin_rule_category import AdminRuleCategory
 
 
 class LawChangeListItem(BaseModel):
@@ -11,7 +12,7 @@ class LawChangeListItem(BaseModel):
     law_name: str
     law_type_name: Optional[str] = None
     ministry_names: Optional[str] = None
-
+    category: Optional[AdminRuleCategory] = None
     change_type: Optional[str] = None
     proclamation_no: Optional[str] = None
     proclamation_date: Optional[date] = None
@@ -48,10 +49,12 @@ class LawChangeSummary(BaseModel):
     law_name: str
     law_type_name: Optional[str] = None
     ministry_names: Optional[str] = None
+    category: Optional[AdminRuleCategory] = None
     change_type: Optional[str] = None
     proclamation_no: Optional[str] = None
     proclamation_date: Optional[date] = None
     enforce_date: Optional[date] = None
+    current_hist_cd: Optional[str] = None
     collected_date: date
     change_summary: Optional[str] = None
     action_recommendation: Optional[str] = None
@@ -63,7 +66,7 @@ class LawChangeSummary(BaseModel):
 
 class LawChangeDetail(BaseModel):
     change: LawChangeSummary
-    has_old_new: str              # 'Y' / 'N'
+    has_old_new: Literal["Y", "N"]
     old_basic: Optional[Dict[str, Any]] = None
     new_basic: Optional[Dict[str, Any]] = None
     articles: List[ArticleDiffItem]

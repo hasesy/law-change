@@ -12,10 +12,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from app.core.config import get_settings
-from app.models.law_change_event import LawChangeEvent
-from app.models.law import Law
-from app.models.law_old_new_info import LawOldNewInfo
-from app.models.law_article_diff import LawArticleDiff
+from app.models.law.law_change_event import LawChangeEvent
+from app.models.law.law import Law
+from app.models.law.law_old_new_info import LawOldNewInfo
+from app.models.law.law_article_diff import LawArticleDiff
 
 logger = logging.getLogger(__name__)
 

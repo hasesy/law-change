@@ -7,50 +7,10 @@ from sqlalchemy import (
     TIMESTAMP,
     func,
     JSON,
-    Enum as SAEnum
 )
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
-from app.enums.admin_rule_category import AdminRuleCategory
-
-
-class AdminRule(Base):
-    """
-    행정규칙 마스터 (public.admin_rule)
-    """
-    __tablename__ = "admin_rule"
-    __allow_unmapped__ = True  # 타입힌트 없는 구방식 허용
-
-    admrul_id = Column(Integer, primary_key=True, index=True)
-    admrul_name = Column(Text, nullable=False)
-    admrul_type_name = Column(Text, nullable=True)
-    ministry_names = Column(Text, nullable=True)
-    category = Column(
-        SAEnum(AdminRuleCategory, name="admin_rule_category"),
-        nullable=False,
-        default=AdminRuleCategory.ETC,
-    )
-    created_at = Column(
-        TIMESTAMP(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
-    updated_at = Column(
-        TIMESTAMP(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
-
-    # 관계: 한 규칙ID(admrul_id)에 여러 버전(admrul_sn)
-    versions = relationship(
-        "AdminRuleList",
-        back_populates="admin_rule",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-
 
 class AdminRuleList(Base):
     """
@@ -61,7 +21,7 @@ class AdminRuleList(Base):
 
     admrul_sn = Column(Text, primary_key=True, index=True)
     admrul_id = Column(
-        Integer,
+        Text,
         ForeignKey("admin_rule.admrul_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -83,6 +43,10 @@ class AdminRuleList(Base):
     detail_link_path = Column(Text, nullable=True)
 
     raw_json = Column(JSON, nullable=True)
+    
+    change_summary = Column(Text, nullable=True)           # 내용요약
+    action_recommendation = Column(Text, nullable=True)     # 조치사항
+    ai_importance = Column(Text, nullable=True)  # 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
 
     created_at = Column(
         TIMESTAMP(timezone=True),

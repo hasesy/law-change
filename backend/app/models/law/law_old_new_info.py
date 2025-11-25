@@ -2,7 +2,6 @@ from sqlalchemy import (
     Column,
     Text,
     DateTime,
-    ForeignKey,
     CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB

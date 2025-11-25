@@ -34,6 +34,7 @@ def _request_json(
             resp = requests.get(url, params=params, timeout=timeout)
             resp.raise_for_status()
             return resp.json()
+       
         except (ReadTimeout, RequestsConnectionError) as e:
             last_exc = e
             print(
@@ -70,7 +71,7 @@ def fetch_law_history_page_by_regdt(
       "display": display,
     }
 
-    data = _request_json(settings.nlic_history_url, params)
+    data = _request_json(settings.nlic_list_url, params)
 
     service = data.get("LawSearch") or data
 
@@ -95,7 +96,7 @@ def fetch_law_history_page_by_regdt(
     return items, has_next
 
 
-def fetch_old_new(mst: str) -> Dict[str, Any]:
+def fetch_law_old_new(mst: str) -> Dict[str, Any]:
     params = {
         "OC": settings.nlic_oc,
         "target": "oldAndNew",
@@ -104,7 +105,7 @@ def fetch_old_new(mst: str) -> Dict[str, Any]:
     }
     # 내용이 길어서 timeout을 더 줌
     return _request_json(
-        settings.nlic_oldnew_url,
+        settings.nlic_detail_url,
         params,
         timeout=230,      # 한 건당 최대 60초까지 기다려 줌
         max_retries=5,   # 60초 * 5번 → 진짜 안 되면 그때 실패
@@ -132,7 +133,7 @@ def fetch_admin_rule_page_by_issue_date(
         "display": display,
     }
 
-    data = _request_json(settings.nlic_history_url, params)
+    data = _request_json(settings.nlic_list_url, params)
 
     service = data.get("AdmRulSearch") or data
     raw_items = service.get("admrul") or []
@@ -145,7 +146,16 @@ def fetch_admin_rule_page_by_issue_date(
         items = []
 
     total_cnt = int(service.get("totalCnt", len(items)))
-    display_ret = int(service.get("numOfRows", service.get("display", display)))
+    # numOfRows가 "0"이거나 없을 수 있으니 방어
+    num_of_rows = service.get("numOfRows") or service.get("display") or str(display)
+    try:
+        display_ret = int(num_of_rows)
+    except ValueError:
+        display_ret = display
+
+    # ✅ 아무 데이터도 없거나, 한 페이지당 0건이면 → 더 이상 페이지 없음
+    if total_cnt == 0 or display_ret <= 0:
+        return items, False
     page_ret = int(service.get("page", page))
 
     max_page = (total_cnt + display_ret - 1) // display_ret
@@ -173,7 +183,7 @@ def fetch_admin_rule_page_by_issue_range(
         "display": display,
     }
 
-    data = _request_json(settings.nlic_history_url, params)
+    data = _request_json(settings.nlic_list_url, params)
 
     service = data.get("AdmRulSearch") or data
     raw_items = service.get("admrul") or []
@@ -186,10 +196,51 @@ def fetch_admin_rule_page_by_issue_range(
         items = []
 
     total_cnt = int(service.get("totalCnt", len(items)))
-    display_ret = int(service.get("numOfRows", service.get("display", display)))
+    
+    # numOfRows가 "0"이거나 없을 수 있으니 방어
+    num_of_rows = service.get("numOfRows") or service.get("display") or str(display)
+    try:
+        display_ret = int(num_of_rows)
+    except ValueError:
+        display_ret = display
+
+    # ✅ 아무 데이터도 없거나, 한 페이지당 0건이면 → 더 이상 페이지 없음
+    if total_cnt == 0 or display_ret <= 0:
+        return items, False
+    
     page_ret = int(service.get("page", page))
+    
+    # ✅ 아무 데이터도 없거나, 한 페이지당 0건이면 더 이상 다음 페이지 없음
+    if total_cnt == 0 or display_ret <= 0:
+        return items, False
 
     max_page = (total_cnt + display_ret - 1)
     has_next = page_ret < max_page
 
     return items, has_next
+
+
+def fetch_admin_rule_old_new(admrul_sn: str) -> Dict[str, Any]:
+    """
+    행정규칙 신·구조문 비교 (AdmRulOldAndNewService)
+    - target: admrulOldAndNew
+    - ID: 행정규칙일련번호(admrul_sn)
+    """
+    if not admrul_sn:
+        raise ValueError("admrul_sn(ID)이 비어 있습니다.")
+
+    params = {
+        "OC": settings.nlic_oc,
+        "target": "admrulOldAndNew",
+        "type": "JSON",
+        "ID": admrul_sn,
+    }
+
+    # 내용이 길어서 timeout은 넉넉하게
+    return _request_json(
+        settings.nlic_detail_url,
+        params,
+        timeout=230,      # 신·구조문은 내용이 길어 230초 유지
+        max_retries=5,
+        backoff_sec=2.0,
+    )
